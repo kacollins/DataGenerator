@@ -487,6 +487,32 @@ namespace DataGenerator
             Outputs
         }
 
+        private enum DataType
+        {
+            Image = 34,
+            Uniqueidentifier = 36,
+            Date = 40,
+            Datetimeoffset = 43,
+            Tinyint = 48,
+            Smallint = 52,
+            Integer = 56,
+            Datetime = 61,
+            Floating = 62,
+            Sql_variant = 98,
+            Bit = 104,
+            Dec = 106,
+            Numeric = 108,
+            Bigint = 127,
+            Varbinary = 165,
+            Varchar = 167,
+            Binary = 173,
+            Character = 175,
+            Nvarchar = 231,
+            Sysname = 231,
+            Nchar = 239,
+            Xml = 241
+        }
+
         #endregion
 
     }
