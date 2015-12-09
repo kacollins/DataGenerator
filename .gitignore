@@ -1,0 +1,4 @@
+DataGenerator/bin/Debug/
+DataGenerator/obj/Debug/
+*.supersecret
+connections.config
