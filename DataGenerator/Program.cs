@@ -451,6 +451,26 @@ namespace DataGenerator
             }
         }
 
+        private class Column
+        {
+            public string ColumnName { get; }
+            public int SystemTypeID { get; }
+            public int MaxLength { get; }
+            public int Precision { get; }
+            public int Scale { get; }
+            public bool Nullable { get; }
+
+            public Column(DataRow dr)
+            {
+                ColumnName = dr["name"].ToString();
+                SystemTypeID = int.Parse(dr["system_type_id"].ToString());
+                MaxLength = int.Parse(dr["max_length"].ToString());
+                Precision = int.Parse(dr["precision"].ToString());
+                Scale = int.Parse(dr["scale"].ToString());
+                Nullable = bool.Parse(dr["is_nullable"].ToString());
+            }
+        }
+
         #endregion
 
         #region Enums
