@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DataGenerator
 {
@@ -94,12 +95,20 @@ namespace DataGenerator
 
             if (column.SystemTypeID == (int)DataType.Bit)
             {
-                output = rand.Next(0, 2).ToString();
+                int randomNumber = rand.Next(0, column.Nullable ? 3 : 2);
+                output = randomNumber == 2 ? "NULL" : randomNumber.ToString();
                 needQuotes = false;
             }
             else if (column.SystemTypeID == (int)DataType.Integer)
             {
-                output = rand.Next(1, 10).ToString();
+                int randomNumber = rand.Next(column.Nullable ? 0 : 1, 10);
+                output = randomNumber == 0 ? "NULL" : randomNumber.ToString();
+                needQuotes = false;
+            }
+            else if (column.SystemTypeID == (int)DataType.Numeric || column.SystemTypeID == (int)DataType.Dec)
+            {
+                decimal randomNumber = rand.Next(0, (int)Math.Pow(10, column.Precision)) / (decimal)Math.Pow(10, column.Scale);
+                output = randomNumber.ToString();
                 needQuotes = false;
             }
             else if (column.SystemTypeID == (int)DataType.Date || column.SystemTypeID == (int)DataType.Datetime)
@@ -113,9 +122,14 @@ namespace DataGenerator
 
                 output = DateTime.Now.AddMinutes(-minuteOffset).ToString();
             }
-            else if (column.SystemTypeID == (int)DataType.Varchar || column.SystemTypeID == (int)DataType.Character)
+            else if (column.SystemTypeID == (int)DataType.Varchar || column.SystemTypeID == (int)DataType.Nvarchar || column.SystemTypeID == (int)DataType.Character)
             {
                 output = GetStringByColumnName(column, rand);
+            }
+            else if (column.SystemTypeID == (int)DataType.Uniqueidentifier)
+            {
+                output = "NEWID()";
+                needQuotes = false;
             }
 
             if (needQuotes)
@@ -133,19 +147,19 @@ namespace DataGenerator
 
             if (columnName == "usercreated" || columnName == "usermodified")
             {
-                output = "admin"; //TODO
+                output = "admin";
             }
             else if (columnName.Contains("firstname"))
             {
-                output = FirstNames[rand.Next(0, FirstNames.Count)];
+                output = GetRandom(FirstNames, rand);
             }
             else if (columnName.Contains("lastname"))
             {
-                output = LastNames[rand.Next(0, LastNames.Count)];
+                output = GetRandom(LastNames, rand);
             }
             else if (columnName.Contains("address1"))
             {
-                output = $"{rand.Next(100, 999)} {Streets[rand.Next(0, Streets.Count)]} St.";
+                output = $"{rand.Next(10, 9999)} {GetRandom(Streets, rand)} St.";
             }
             else if (columnName.Contains("address2"))
             {
@@ -154,11 +168,11 @@ namespace DataGenerator
             }
             else if (columnName.EndsWith("city"))
             {
-                output = "Oklahoma City"; //TODO
+                output = GetRandom(Cities, rand);
             }
-            else if (columnName.EndsWith("state"))
+            else if (columnName.EndsWith("state") && column.MaxLength <= 5)
             {
-                output = "OK"; //TODO
+                output = "OK";
             }
             else if (columnName.Contains("zipcode"))
             {
@@ -170,39 +184,52 @@ namespace DataGenerator
             }
             else if (columnName.EndsWith("phone"))
             {
-                if (column.MaxLength >= 14)
+                output = $"({rand.Next(100, 999)}) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
+
+                if (column.MaxLength < output.Length)
                 {
-                    output = $"(405) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
-                }
-                else
-                {
-                    output = $"405{rand.Next(1000000, 9999999)}";
+                    output = GetDigits(output);
                 }
             }
             else if (columnName.Contains("phoneext"))
             {
-                output = $"Ext. {rand.Next(1, 9999)}";
+                int randomNumber = rand.Next(0, 3);
+                output = randomNumber == 0 ? "" : $"Ext. {randomNumber}";
             }
             else if (columnName.Contains("email"))
             {
-                output = $"{LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)]}{rand.Next(100, 999)}@email.email";
+                output = $"{GetRandom(LoremIpsumWords, rand)}_{GetRandom(LoremIpsumWords, rand)}_{rand.Next(1, 999)}@email.email";
             }
             else
             {
-                output = LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)];
+                StringBuilder sb = new StringBuilder(GetRandom(LoremIpsumWords, rand));
 
                 int wordCounter = 1;
-                int maxNumberOfWords = column.MaxLength / (int)LoremIpsumWords.Average(w => w.Length);
+                int maxNumberOfWords = (int)(column.MaxLength / LoremIpsumWords.Average(w => w.Length)) + 1;
                 int numberOfWordsToUse = rand.Next(1, maxNumberOfWords + 1);
 
-                while (output.Length + LoremIpsumWords.Max(w => w.Length) < column.MaxLength + 1 && wordCounter <= numberOfWordsToUse)
+                while (sb.Length + LoremIpsumWords.Max(w => w.Length) < column.MaxLength && wordCounter < numberOfWordsToUse)
                 {
-                    output += " " + LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)];
+                    sb.Append(' ');
+                    sb.Append(GetRandom(LoremIpsumWords, rand));
                     wordCounter++;
                 }
+
+                output = sb.ToString();
             }
 
             return output;
+        }
+
+        private static string GetDigits(string input)
+        {
+            Regex regex = new Regex(@"[^\d]");
+            return regex.Replace(input, "");
+        }
+
+        private static string GetRandom(List<string> strings, Random rand)
+        {
+            return strings[rand.Next(0, strings.Count)];
         }
 
         private static TableFileResult GetTablesToPopulate()
@@ -292,8 +319,6 @@ namespace DataGenerator
         {
             const char backSlash = '\\';
             string directory = $"{CurrentDirectory}{backSlash}{Folder.Outputs}";
-
-            //TODO: Create subdirectory for each schema
 
             if (!Directory.Exists(directory))
             {
@@ -391,6 +416,20 @@ namespace DataGenerator
             "Oak",
             "Pine",
             "Maple"
+        };
+
+        private static List<string> Cities => new List<string>
+        {
+            "Oklahoma City",
+            "Tulsa",
+            "Norman",
+            "Broken Arrow",
+            "Lawton",
+            "Edmond",
+            "Moore",
+            "Midwest City",
+            "Enid",
+            "Stillwater"
         };
 
         private static List<string> LoremIpsumWords => new List<string>
@@ -517,28 +556,16 @@ namespace DataGenerator
 
         private enum DataType
         {
-            Image = 34,
             Uniqueidentifier = 36,
             Date = 40,
-            Datetimeoffset = 43,
-            Tinyint = 48,
-            Smallint = 52,
             Integer = 56,
             Datetime = 61,
-            Floating = 62,
-            Sql_variant = 98,
             Bit = 104,
             Dec = 106,
             Numeric = 108,
-            Bigint = 127,
-            Varbinary = 165,
             Varchar = 167,
-            Binary = 173,
             Character = 175,
-            Nvarchar = 231,
-            Sysname = 231,
-            Nchar = 239,
-            Xml = 241
+            Nvarchar = 231
         }
 
         #endregion
