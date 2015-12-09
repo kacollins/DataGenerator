@@ -38,9 +38,19 @@ namespace DataGenerator
 
         private static void GenerateInsertScripts(Table table)
         {
-            string queryText = $"SELECT TOP 1 * FROM {table.SchemaName}.{table.TableName}";
+            string queryText = "SELECT c.name, c.system_type_id, c.max_length, c.precision, c.scale, c.is_nullable" +
+                               " FROM sys.columns c" +
+                               " INNER JOIN sys.tables t" +
+                               " ON c.object_id = t.object_id" +
+                               " INNER JOIN sys.schemas s" +
+                               " ON t.schema_id = s.schema_id" +
+                               $" WHERE s.name = '{table.SchemaName}'" +
+                               $" AND t.name = '{table.TableName}'" +
+                               " AND is_identity = 0" +
+                               " AND is_computed = 0";
+
             DataTable dt = GetDataTable(queryText);
-            List<DataColumn> columns = dt.Columns.Cast<DataColumn>().ToList();
+            List<Column> columns = dt.Rows.Cast<DataRow>().Select(dr => new Column(dr)).ToList();
 
             List<string> fileLines = new List<string>();
 
@@ -56,7 +66,7 @@ namespace DataGenerator
             WriteToFile(fileName, fileContents);
         }
 
-        private static List<string> GetInsertScript(List<DataColumn> columns, Table table, Random rand)
+        private static List<string> GetInsertScript(List<Column> columns, Table table, Random rand)
         {
             List<string> scriptLines = new List<string>();
 
@@ -64,35 +74,35 @@ namespace DataGenerator
             {
                 scriptLines.Add($"INSERT INTO {table.SchemaName}.{table.TableName}");
                 scriptLines.Add("(");
-                scriptLines.Add($"{Tab}{columns[1].ColumnName}");
-                scriptLines.AddRange(columns.Skip(2).Select(column => $"{Tab}, {column.ColumnName}"));
+                scriptLines.Add($"{Tab}{columns.First().ColumnName}");
+                scriptLines.AddRange(columns.Skip(1).Select(column => $"{Tab}, {column.ColumnName}"));
                 scriptLines.Add(")");
                 scriptLines.Add("SELECT");
 
-                scriptLines.Add($"{Tab}{columns[1].ColumnName} = {GetColumnValue(columns[1], rand)}");
-                scriptLines.AddRange(columns.Skip(2).Select(column => $"{Tab}, {column.ColumnName} = {GetColumnValue(column, rand)}"));
+                scriptLines.Add($"{Tab}{columns[0].ColumnName} = {GetColumnValue(columns[1], rand)}");
+                scriptLines.AddRange(columns.Skip(1).Select(column => $"{Tab}, {column.ColumnName} = {GetColumnValue(column, rand)}"));
                 scriptLines.Add("");
             }
 
             return scriptLines;
         }
 
-        private static string GetColumnValue(DataColumn column, Random rand)
+        private static string GetColumnValue(Column column, Random rand)
         {
             string output = "TODO";
             bool needQuotes = true;
 
-            if (column.DataType == typeof(bool))
+            if (column.SystemTypeID == (int)DataType.Bit)
             {
                 output = rand.Next(0, 2).ToString();
                 needQuotes = false;
             }
-            else if (column.DataType == typeof(byte) || column.DataType == typeof(short) || column.DataType == typeof(int))
+            else if (column.SystemTypeID == (int)DataType.Integer)
             {
                 output = rand.Next(1, 10).ToString();
                 needQuotes = false;
             }
-            else if (column.DataType == typeof(DateTime))
+            else if (column.SystemTypeID == (int)DataType.Date || column.SystemTypeID == (int)DataType.Datetime)
             {
                 int minuteOffset = 0;
 
@@ -103,9 +113,9 @@ namespace DataGenerator
 
                 output = DateTime.Now.AddMinutes(-minuteOffset).ToString();
             }
-            else if (column.DataType == typeof(string))
+            else if (column.SystemTypeID == (int)DataType.Varchar || column.SystemTypeID == (int)DataType.Character)
             {
-                output = GetStringByColumnName(column, rand);
+                output = GetStringByColumnName(column.ColumnName, rand);
             }
 
             if (needQuotes)
@@ -116,56 +126,60 @@ namespace DataGenerator
             return output;
         }
 
-        private static string GetStringByColumnName(DataColumn column, Random rand)
+        private static string GetStringByColumnName(string columnName, Random rand)
         {
             string output;
 
-            if (column.ColumnName == "UserCreated" || column.ColumnName == "UserModified")
+            columnName = columnName.ToLower();
+
+            if (columnName == "usercreated" || columnName == "usermodified")
             {
                 output = "admin";
             }
-            else if (column.ColumnName.ToLower().Contains("firstname"))
+            else if (columnName.Contains("firstname"))
             {
                 output = FirstNames[rand.Next(0, FirstNames.Count)];
             }
-            else if (column.ColumnName.ToLower().Contains("lastname"))
+            else if (columnName.Contains("lastname"))
             {
                 output = LastNames[rand.Next(0, LastNames.Count)];
             }
-            else if (column.ColumnName.ToLower().Contains("address1"))
+            else if (columnName.Contains("address1"))
             {
                 output = $"{rand.Next(100, 999)} {Streets[rand.Next(0, Streets.Count)]} St.";
             }
-            else if (column.ColumnName.ToLower().Contains("address2"))
+            else if (columnName.Contains("address2"))
             {
                 int randomNumber = rand.Next(0, 3);
                 output = randomNumber == 0 ? "" : $"Suite {randomNumber}";
             }
-            else if (column.ColumnName.ToLower().EndsWith("city"))
+            else if (columnName.EndsWith("city"))
             {
                 output = "Oklahoma City";
             }
-            else if (column.ColumnName.ToLower().EndsWith("state"))
+            else if (columnName.EndsWith("state"))
             {
                 output = "OK";
             }
-            else if (column.ColumnName.ToLower().Contains("zipcode"))
+            else if (columnName.Contains("zipcode"))
             {
                 output = rand.Next(73100, 73199).ToString();
             }
-            else if (column.ColumnName.ToLower().Contains("zip4"))
+            else if (columnName.Contains("zip4"))
             {
                 output = rand.Next(1000, 9999).ToString();
             }
-            else if (column.ColumnName.ToLower().EndsWith("phone"))
+            else if (columnName.EndsWith("phone"))
             {
-                output = $"(405) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
+                //TODO: Add symbols if the column is long enough
+                //output = $"(405) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
+                output = $"405{rand.Next(1000000, 9999999)}";
             }
-            else if (column.ColumnName.ToLower().Contains("phoneext"))
+            else if (columnName.Contains("phoneext"))
             {
                 output = "";
             }
-            else if (column.ColumnName.ToLower().Contains("email"))
+            else if (columnName.Contains("email"))
             {
                 output = $"{LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)]}{rand.Next(100, 999)}@email.email";
             }
