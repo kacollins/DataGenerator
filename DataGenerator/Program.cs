@@ -115,7 +115,7 @@ namespace DataGenerator
             }
             else if (column.SystemTypeID == (int)DataType.Varchar || column.SystemTypeID == (int)DataType.Character)
             {
-                output = GetStringByColumnName(column.ColumnName, rand);
+                output = GetStringByColumnName(column, rand);
             }
 
             if (needQuotes)
@@ -126,15 +126,14 @@ namespace DataGenerator
             return output;
         }
 
-        private static string GetStringByColumnName(string columnName, Random rand)
+        private static string GetStringByColumnName(Column column, Random rand)
         {
             string output;
-
-            columnName = columnName.ToLower();
+            string columnName = column.ColumnName.ToLower();
 
             if (columnName == "usercreated" || columnName == "usermodified")
             {
-                output = "admin";
+                output = "admin"; //TODO
             }
             else if (columnName.Contains("firstname"))
             {
@@ -155,11 +154,11 @@ namespace DataGenerator
             }
             else if (columnName.EndsWith("city"))
             {
-                output = "Oklahoma City";
+                output = "Oklahoma City"; //TODO
             }
             else if (columnName.EndsWith("state"))
             {
-                output = "OK";
+                output = "OK"; //TODO
             }
             else if (columnName.Contains("zipcode"))
             {
@@ -171,13 +170,18 @@ namespace DataGenerator
             }
             else if (columnName.EndsWith("phone"))
             {
-                //TODO: Add symbols if the column is long enough
-                //output = $"(405) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
-                output = $"405{rand.Next(1000000, 9999999)}";
+                if (column.MaxLength >= 14)
+                {
+                    output = $"(405) {rand.Next(100, 999)}-{rand.Next(1000, 9999)}";
+                }
+                else
+                {
+                    output = $"405{rand.Next(1000000, 9999999)}";
+                }
             }
             else if (columnName.Contains("phoneext"))
             {
-                output = "";
+                output = $"Ext. {rand.Next(1, 9999)}";
             }
             else if (columnName.Contains("email"))
             {
@@ -186,6 +190,16 @@ namespace DataGenerator
             else
             {
                 output = LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)];
+
+                int wordCounter = 1;
+                int maxNumberOfWords = column.MaxLength / (int)LoremIpsumWords.Average(w => w.Length);
+                int numberOfWordsToUse = rand.Next(1, maxNumberOfWords + 1);
+
+                while (output.Length + LoremIpsumWords.Max(w => w.Length) < column.MaxLength + 1 && wordCounter <= numberOfWordsToUse)
+                {
+                    output += " " + LoremIpsumWords[rand.Next(0, LoremIpsumWords.Count)];
+                    wordCounter++;
+                }
             }
 
             return output;
