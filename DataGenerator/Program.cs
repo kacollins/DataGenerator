@@ -102,13 +102,13 @@ namespace DataGenerator
 
             if (column.SystemTypeID == (int)DataType.Bit)
             {
-                int randomNumber = rand.Next(0, column.Nullable ? 3 : 2);
+                int randomNumber = rand.Next(0, column.IsNullable ? 3 : 2);
                 output = randomNumber == 2 ? "NULL" : randomNumber.ToString();
                 needQuotes = false;
             }
             else if (column.SystemTypeID == (int)DataType.Integer)
             {
-                int randomNumber = rand.Next(column.Nullable ? 0 : 1, 10);
+                int randomNumber = rand.Next(column.IsNullable ? 0 : 1, 10);
                 output = randomNumber == 0 ? "NULL" : randomNumber.ToString();
                 needQuotes = false;
             }
@@ -532,7 +532,7 @@ namespace DataGenerator
             public int MaxLength { get; }
             public int Precision { get; }
             public int Scale { get; }
-            public bool Nullable { get; }
+            public bool IsNullable { get; }
 
             public Column(DataRow dr)
             {
@@ -541,7 +541,7 @@ namespace DataGenerator
                 MaxLength = int.Parse(dr["max_length"].ToString());
                 Precision = int.Parse(dr["precision"].ToString());
                 Scale = int.Parse(dr["scale"].ToString());
-                Nullable = bool.Parse(dr["is_nullable"].ToString());
+                IsNullable = bool.Parse(dr["is_nullable"].ToString());
             }
         }
 
