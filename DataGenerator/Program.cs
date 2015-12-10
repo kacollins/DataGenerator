@@ -179,15 +179,15 @@ namespace DataGenerator
             }
             else if (columnName.EndsWith("state") && column.MaxLength <= 5)
             {
-                output = "OK";
+                output = GetRandom(States, rand);
             }
             else if (columnName.Contains("zipcode"))
             {
-                output = rand.Next(73100, 73199).ToString();
+                output = rand.Next(501, 99950).ToString("00000");
             }
             else if (columnName.Contains("zip4"))
             {
-                output = rand.Next(1000, 9999).ToString();
+                output = rand.Next(1, 9999).ToString("0000");
             }
             else if (columnName.EndsWith("phone"))
             {
@@ -437,6 +437,60 @@ namespace DataGenerator
             "Midwest City",
             "Enid",
             "Stillwater"
+        };
+
+        private static List<string> States => new List<string>
+        {
+            "AL",
+            "AK",
+            "AZ",
+            "AR",
+            "CA",
+            "CO",
+            "CT",
+            "DE",
+            "FL",
+            "GA",
+            "HI",
+            "ID",
+            "IL",
+            "IN",
+            "IA",
+            "KS",
+            "KY",
+            "LA",
+            "ME",
+            "MD",
+            "MA",
+            "MI",
+            "MN",
+            "MS",
+            "MO",
+            "MT",
+            "NE",
+            "NV",
+            "NH",
+            "NJ",
+            "NM",
+            "NY",
+            "NC",
+            "ND",
+            "OH",
+            "OK",
+            "OR",
+            "PA",
+            "RI",
+            "SC",
+            "SD",
+            "TN",
+            "TX",
+            "UT",
+            "VT",
+            "VA",
+            "WA",
+            "WV",
+            "WI",
+            "WY"
         };
 
         private static List<string> LoremIpsumWords => new List<string>
