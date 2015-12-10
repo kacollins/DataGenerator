@@ -39,19 +39,7 @@ namespace DataGenerator
 
         private static void GenerateInsertScripts(Table table)
         {
-            string queryText = "SELECT c.name, c.system_type_id, c.max_length, c.precision, c.scale, c.is_nullable" +
-                               " FROM sys.columns c" +
-                               " INNER JOIN sys.tables t" +
-                               " ON c.object_id = t.object_id" +
-                               " INNER JOIN sys.schemas s" +
-                               " ON t.schema_id = s.schema_id" +
-                               $" WHERE s.name = '{table.SchemaName}'" +
-                               $" AND t.name = '{table.TableName}'" +
-                               " AND is_identity = 0" +
-                               " AND is_computed = 0";
-
-            DataTable dt = GetDataTable(queryText);
-            List<Column> columns = dt.Rows.Cast<DataRow>().Select(dr => new Column(dr)).ToList();
+            List<Column> columns = GetColumnsForInsert(table);
 
             List<string> fileLines = new List<string>();
 
@@ -65,6 +53,25 @@ namespace DataGenerator
             string fileContents = AppendLines(fileLines);
 
             WriteToFile(fileName, fileContents);
+        }
+
+        private static List<Column> GetColumnsForInsert(Table table)
+        {
+            string queryText = $@"SELECT c.name, c.system_type_id, c.max_length, c.precision, c.scale, c.is_nullable{
+                Environment.NewLine}FROM sys.columns c{
+                Environment.NewLine}INNER JOIN sys.tables t{
+                Environment.NewLine}ON c.object_id = t.object_id{
+                Environment.NewLine}INNER JOIN sys.schemas s{
+                Environment.NewLine}ON t.schema_id = s.schema_id{
+                Environment.NewLine}WHERE s.name = '{table.SchemaName}'{
+                Environment.NewLine}AND t.name = '{table.TableName}'{
+                Environment.NewLine}AND is_identity = 0{
+                Environment.NewLine}AND is_computed = 0";
+
+            DataTable dt = GetDataTable(queryText);
+            List<Column> columns = dt.Rows.Cast<DataRow>().Select(dr => new Column(dr)).ToList();
+
+            return columns;
         }
 
         private static List<string> GetInsertScript(List<Column> columns, Table table, Random rand)
