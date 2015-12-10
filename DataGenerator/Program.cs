@@ -255,11 +255,10 @@ namespace DataGenerator
             List<string> lines = GetFileLines(fileName);
             const char period = '.';
 
-            List<Table> tables = lines.Select(line => line.Split(period))
-                                                .Where(parts => parts.Length == Enum.GetValues(typeof(TablePart)).Length)
-                                                .Select(parts => new Table(parts[(int)TablePart.SchemaName],
-                                                                        parts[(int)TablePart.TableName]))
-                                                .ToList();
+            List<Table> tables = lines.Select(line => line.Split(period).ToList())
+                                        .Where(parts => parts.Count == Enum.GetValues(typeof(TablePart)).Length)
+                                        .Select(parts => new Table(parts))
+                                        .ToList();
 
             List<string> errorMessages = GetFileErrors(lines, period, Enum.GetValues(typeof(TablePart)).Length, "schema/table format");
 
@@ -569,10 +568,10 @@ namespace DataGenerator
             public string SchemaName { get; }
             public string TableName { get; }
 
-            public Table(string schemaName, string tableName)
+            public Table(List<string> parts)
             {
-                SchemaName = schemaName.Trim();
-                TableName = tableName.Trim();
+                SchemaName = parts[(int)TablePart.SchemaName].Trim();
+                TableName = parts[(int)TablePart.TableName].Trim();
             }
         }
 
