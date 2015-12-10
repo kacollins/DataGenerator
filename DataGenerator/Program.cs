@@ -209,21 +209,30 @@ namespace DataGenerator
             }
             else
             {
-                StringBuilder sb = new StringBuilder(GetRandom(LoremIpsumWords, rand));
-
-                int wordCounter = 1;
-                int maxNumberOfWords = (int)(column.MaxLength / LoremIpsumWords.Average(w => w.Length)) + 1;
-                int numberOfWordsToUse = rand.Next(1, maxNumberOfWords + 1);
-
-                while (sb.Length + LoremIpsumWords.Max(w => w.Length) < column.MaxLength && wordCounter < numberOfWordsToUse)
-                {
-                    sb.Append(' ');
-                    sb.Append(GetRandom(LoremIpsumWords, rand));
-                    wordCounter++;
-                }
-
-                output = sb.ToString();
+                output = GetLoremIpsumText(column, rand);
             }
+
+            return output;
+        }
+
+        private static string GetLoremIpsumText(Column column, Random rand)
+        {
+            StringBuilder sb = new StringBuilder(GetRandom(LoremIpsumWords, rand));
+
+            int wordCounter = 1;
+            int maxNumberOfWords = (int)(column.MaxLength / LoremIpsumWords.Average(w => w.Length)) + 1;
+            int numberOfWordsToUse = rand.Next(1, maxNumberOfWords + 1);
+
+            //TODO: Add punctuation and capitalization
+
+            while (sb.Length + LoremIpsumWords.Max(w => w.Length) < column.MaxLength && wordCounter < numberOfWordsToUse)
+            {
+                sb.Append(' ');
+                sb.Append(GetRandom(LoremIpsumWords, rand));
+                wordCounter++;
+            }
+
+            string output = sb.ToString();
 
             return output;
         }
